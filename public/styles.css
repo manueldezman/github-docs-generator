@@ -19,6 +19,7 @@
   --accent-border:  rgba(0, 200, 150, 0.3);
   --green:          #00c896;
   --red:            #f56565;
+  --yellow:         #f5c542;
   --radius:         10px;
   --radius-lg:      14px;
 }
@@ -89,6 +90,49 @@ h1 em {
   font-size: 14px;
   color: var(--muted);
   line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+/* ─── Repo action buttons ────────────────────────────── */
+.repo-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.repo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 7px 14px;
+  border-radius: var(--radius);
+  text-decoration: none;
+  transition: all 0.15s;
+  border: 1px solid var(--border);
+}
+
+.star-btn {
+  background: rgba(245, 197, 66, 0.08);
+  color: var(--yellow);
+  border-color: rgba(245, 197, 66, 0.3);
+}
+
+.star-btn:hover {
+  background: rgba(245, 197, 66, 0.15);
+  border-color: rgba(245, 197, 66, 0.5);
+}
+
+.contribute-btn {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+
+.contribute-btn:hover {
+  background: rgba(0, 200, 150, 0.15);
+  border-color: rgba(0, 200, 150, 0.5);
 }
 
 /* ─── Card ───────────────────────────────────────────── */
@@ -304,6 +348,9 @@ input[type="text"]::placeholder {
 
 /* ─── Footer ─────────────────────────────────────────── */
 .footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   margin-top: 3rem;
   text-align: center;
   font-size: 11px;
@@ -322,11 +369,11 @@ input[type="text"]::placeholder {
 
 /* ─── Responsive ─────────────────────────────────────── */
 @media (max-width: 500px) {
-  .types {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
   h1 {
     font-size: 22px;
+  }
+
+  .repo-actions {
+    flex-wrap: wrap;
   }
 }
