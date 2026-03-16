@@ -1,16 +1,16 @@
-# GitHub Docs Generator
+# GitHub README Generator
 
 An open source, AI-powered documentation generator for any public GitHub repository. Paste a repo URL, select a doc type, and get a complete markdown document in seconds.
 
-**Live demo:** [your-vercel-url.vercel.app](https://your-vercel-url.vercel.app)
+**Live demo:** [github-docs-generator](https://github-docs-generator.vercel.app/)
 
 ---
 
 ## Features
 
-- Generates 6 documentation types: README, API Reference, Full Docs, Contributing guide, Quickstart, and Changelog
+- Generates 2 documentation types: README and Quickstart.
 - Fetches real repo metadata, file structure, and existing README from the GitHub public API
-- Powered by Google Gemini 2.0 Flash via a secure backend proxy
+- Powered by Google Gemini 2.5 Flash via a secure backend proxy
 - No API key required for end users
 - Clean, responsive dark UI
 
@@ -22,7 +22,7 @@ An open source, AI-powered documentation generator for any public GitHub reposit
 |---|---|
 | Frontend | HTML, CSS, JavaScript (vanilla) |
 | Backend | Vercel Serverless Function (Node.js) |
-| AI | Google Gemini 2.0 Flash |
+| AI | Google Gemini 2.5 Flash |
 | Hosting | Vercel (free tier) |
 
 ---
@@ -32,16 +32,18 @@ An open source, AI-powered documentation generator for any public GitHub reposit
 ```
 github-docs-generator/
 ├── public/
-│   ├── index.html      # HTML structure
-│   ├── styles.css      # All styling
-│   └── app.js          # All frontend logic
+│   ├── index.html
+│   ├── styles.css
+│   └── app.js
 ├── api/
-│   └── generate.js     # Serverless proxy (keeps API key secure)
-├── vercel.json         # Vercel configuration
-├── DEPLOY.md           # Deployment guide
-└── README.md           # This file
-```
+│   └── generate.js
+├── .env              ← gitignored
+├── .gitignore
+├── vercel.json
+├── DEPLOY.md
+└── README.md
 
+```
 ---
 
 ## Local development
@@ -57,7 +59,7 @@ github-docs-generator/
 1. Clone the repo:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/github-docs-generator.git
+git clone https://github.com/manueldezman/github-docs-generator.git
 cd github-docs-generator
 ```
 
@@ -96,10 +98,8 @@ Contributions are welcome! Here's how to get started:
 
 ### Good first issues
 
-- Add a new documentation type (e.g. Docker setup guide, Security policy)
 - Add a light mode toggle
 - Improve mobile responsiveness
-- Add syntax highlighting to the markdown output
 
 ### Commit message format
 
