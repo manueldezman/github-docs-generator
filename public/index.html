@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GitHub Docs Generator</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="wrap">
+
+    <div class="header">
+      <div class="eyebrow">Free · Powered by Gemini</div>
+      <h1>GitHub <em>Docs</em> Generator</h1>
+      <p class="tagline">Paste any public GitHub repo URL and get instant, AI-written documentation.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Repository URL</div>
+      <input type="text" id="repo-url" placeholder="https://github.com/owner/repo" />
+    </div>
+
+    <div class="card">
+      <div class="card-label">Documentation type</div>
+      <div class="types" id="types">
+        <div class="type active" data-type="readme">
+          <span class="t-name">README</span>
+          <span class="t-desc">Overview & setup</span>
+        </div>
+        <div class="type" data-type="api">
+          <span class="t-name">API reference</span>
+          <span class="t-desc">Functions & endpoints</span>
+        </div>
+        <div class="type" data-type="full">
+          <span class="t-name">Full docs</span>
+          <span class="t-desc">Complete documentation</span>
+        </div>
+        <div class="type" data-type="contributing">
+          <span class="t-name">Contributing</span>
+          <span class="t-desc">Dev guide & style</span>
+        </div>
+        <div class="type" data-type="quickstart">
+          <span class="t-name">Quickstart</span>
+          <span class="t-desc">Get running fast</span>
+        </div>
+        <div class="type" data-type="changelog">
+          <span class="t-name">Changelog</span>
+          <span class="t-desc">Version history</span>
+        </div>
+      </div>
+
+      <button id="gen-btn" onclick="generate()">Generate docs</button>
+      <div class="error" id="error-msg"></div>
+    </div>
+
+    <div id="output">
+      <div class="output-header">
+        <span class="output-tag" id="output-tag">README</span>
+        <button class="copy-btn" id="copy-btn" onclick="copyDocs()">Copy markdown</button>
+      </div>
+      <div id="doc-out"></div>
+    </div>
+
+    <div class="footer">
+      Powered by <a href="https://ai.google.dev" target="_blank">Google Gemini 2.0 Flash</a>
+      &nbsp;·&nbsp; Works on any public GitHub repo
+      &nbsp;·&nbsp; Built by <a href="https://0xdezman.hashnode.dev" target="_blank">0xdezman</a>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
