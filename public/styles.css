@@ -134,7 +134,7 @@ input[type="text"]::placeholder {
 /* ─── Doc type selector ──────────────────────────────── */
 .types {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 7px;
 }
 

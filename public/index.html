@@ -11,8 +11,8 @@
 
     <div class="header">
       <div class="eyebrow">Free · Powered by Gemini</div>
-      <h1>GitHub <em>Docs</em> Generator</h1>
-      <p class="tagline">Paste any public GitHub repo URL and get instant, AI-written documentation.</p>
+      <h1>GitHub <em>README</em> Generator</h1>
+      <p class="tagline">Paste any public GitHub repo URL and get an instant, AI-written README.</p>
     </div>
 
     <div class="card">
@@ -25,31 +25,15 @@
       <div class="types" id="types">
         <div class="type active" data-type="readme">
           <span class="t-name">README</span>
-          <span class="t-desc">Overview & setup</span>
-        </div>
-        <div class="type" data-type="api">
-          <span class="t-name">API reference</span>
-          <span class="t-desc">Functions & endpoints</span>
-        </div>
-        <div class="type" data-type="full">
-          <span class="t-name">Full docs</span>
-          <span class="t-desc">Complete documentation</span>
-        </div>
-        <div class="type" data-type="contributing">
-          <span class="t-name">Contributing</span>
-          <span class="t-desc">Dev guide & style</span>
+          <span class="t-desc">Full project overview</span>
         </div>
         <div class="type" data-type="quickstart">
           <span class="t-name">Quickstart</span>
           <span class="t-desc">Get running fast</span>
         </div>
-        <div class="type" data-type="changelog">
-          <span class="t-name">Changelog</span>
-          <span class="t-desc">Version history</span>
-        </div>
       </div>
 
-      <button id="gen-btn" onclick="generate()">Generate docs</button>
+      <button id="gen-btn" onclick="generate()">Generate</button>
       <div class="error" id="error-msg"></div>
     </div>
 
