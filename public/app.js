@@ -248,7 +248,25 @@ async function copyDocs() {
       button.textContent = 'Copy';
       button.classList.remove('copied');
     }, 2000);
+    setTimeout(openStarModal, 350);
   } catch {
     button.textContent = 'Copy failed';
   }
 }
+
+function openStarModal() {
+  const modal = document.getElementById('star-modal');
+  if (!modal.open) {
+    modal.showModal();
+    document.getElementById('star-action').focus();
+  }
+}
+
+function closeStarModal() {
+  const modal = document.getElementById('star-modal');
+  if (modal.open) modal.close();
+}
+
+document.getElementById('star-modal').addEventListener('click', event => {
+  if (event.target === event.currentTarget) closeStarModal();
+});
