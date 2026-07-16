@@ -7,23 +7,6 @@ const typeLabels = {
   quickstart: 'Quickstart',
 };
 
-/* ─── Prompts per doc type ───────────────────────────── */
-const prompts = {
-  readme:
-  'Generate a comprehensive README.md with the following sections in this order: ' +
-  'project title, short description, features list, tech stack, prerequisites, ' +
-  'installation & quick start (with code examples), repository structure (shown as a file tree using a markdown code block), ' +
-  'architecture overview, example usage, testing instructions, license. ' +
-  'Only include an environment variables section (shown as a table) if the project actually has environment variables based on the repo data. ' +
-  'Do not include contributing guidelines or versioning sections. ' +
-  'Make it clear, concise and developer-friendly.',
-  quickstart:
-    'Generate a concise Quickstart Guide with the following sections: ' +
-    'prerequisites, installation (one command where possible), minimal configuration, ' +
-    'and a working hello-world or minimal usage example. ' +
-    'Keep it under one page. Focus only on getting the developer running as fast as possible.',
-};
-
 /* ─── Doc type selector ──────────────────────────────── */
 document.querySelectorAll('.type').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -33,66 +16,30 @@ document.querySelectorAll('.type').forEach(btn => {
   });
 });
 
-/* ─── Fetch repo data from GitHub public API ─────────── */
-async function fetchRepo(url) {
-  const match = url.match(/github\.com\/([^/]+)\/([^/?#\s]+)/);
-  if (!match) throw new Error('Invalid GitHub URL. Use: https://github.com/owner/repo');
-
-  const [, owner, repo] = match;
-  const base = 'https://api.github.com/repos/' + owner + '/' + repo.replace(/\.git$/, '');
-
-  const [repoRes, readmeRes, contentsRes] = await Promise.all([
-    fetch(base),
-    fetch(base + '/readme'),
-    fetch(base + '/contents'),
-  ]);
-
-  if (!repoRes.ok) throw new Error('Repo not found or private (' + repoRes.status + ')');
-
-  const repoData = await repoRes.json();
-
-  let readme = '';
-  if (readmeRes.ok) {
-    const rm = await readmeRes.json();
-    try { readme = atob(rm.content.replace(/\n/g, '')); } catch (e) {}
-  }
-
-  let files = [];
-  if (contentsRes.ok) {
-    const contents = await contentsRes.json();
-    files = Array.isArray(contents)
-      ? contents.map(function(f) {
-          return (f.type === 'dir' ? '[dir]' : '[file]') + ' ' + f.name;
-        })
-      : [];
-  }
-
-  return { repoData, readme, files };
-}
-
-/* ─── Build context string for the AI ───────────────── */
-function buildContext(repoData, readme, files) {
-  return 'Repository: ' + repoData.full_name + '\n' +
-    'Description: ' + (repoData.description || 'N/A') + '\n' +
-    'Language: ' + (repoData.language || 'N/A') + '\n' +
-    'Stars: ' + (repoData.stargazers_count != null ? repoData.stargazers_count : 'N/A') + '\n' +
-    'Topics: ' + (repoData.topics && repoData.topics.length ? repoData.topics.join(', ') : 'N/A') + '\n' +
-    'License: ' + (repoData.license && repoData.license.name ? repoData.license.name : 'N/A') + '\n\n' +
-    'File structure:\n' + (files.length ? files.join('\n') : 'N/A') + '\n\n' +
-    'Existing README:\n' + (readme ? readme.slice(0, 3000) : 'None found');
-}
-
-/* ─── Call backend proxy ─────────────────────────────── */
-async function callAPI(context, prompt) {
-  const res = await fetch('/api/generate', {
+/* ─── Call a staged backend endpoint ─────────────────── */
+async function callAPI(endpoint, payload) {
+  const res = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ context: context, prompt: prompt }),
+    body: JSON.stringify(payload),
   });
 
-  const data = await res.json();
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error('The server returned an invalid response.');
+  }
   if (!res.ok) throw new Error(data.error || 'Server error ' + res.status);
-  return data.text;
+  return data;
+}
+
+function setProgress(message) {
+  const btn = document.getElementById('gen-btn');
+  const progress = document.getElementById('progress');
+  btn.innerHTML = '<span class="spinner"></span>' + message;
+  progress.textContent = message;
+  progress.style.display = 'block';
 }
 
 /* ─── Main generate function ─────────────────────────── */
@@ -110,19 +57,43 @@ async function generate() {
   }
 
   btn.disabled  = true;
-  btn.innerHTML = '<span class="spinner"></span>Fetching repo...';
   output.style.display = 'none';
+  document.getElementById('analysis-summary').style.display = 'none';
 
   try {
-    const { repoData, readme, files } = await fetchRepo(url);
+    setProgress('Inspecting repository...');
+    const inspection = await callAPI('/api/inspect', { repositoryUrl: url });
 
-    btn.innerHTML = '<span class="spinner"></span>Generating...';
+    setProgress('Analyzing selected files...');
+    const analysis = await callAPI('/api/analyze', {
+      repository: inspection.repository,
+      tree: inspection.tree,
+      selectedFiles: inspection.selectedFiles,
+    });
 
-    const context = buildContext(repoData, readme, files);
-    const text    = await callAPI(context, prompts[selectedType]);
+    setProgress('Generating documentation...');
+    const generated = await callAPI('/api/generate', {
+      repository: inspection.repository,
+      report: analysis.report,
+      documentType: selectedType,
+      coverage: {
+        inspectedFiles: inspection.tree.length,
+        selectedFiles: inspection.selectedFiles.length,
+        analyzedFiles: analysis.analyzedFiles.length,
+        skippedFiles: analysis.skippedFiles.length,
+        warnings: [...inspection.warnings, ...analysis.warnings],
+      },
+    });
 
     document.getElementById('output-tag').textContent = typeLabels[selectedType];
-    document.getElementById('doc-out').textContent    = text;
+    document.getElementById('doc-out').textContent = generated.text;
+    const summary = document.getElementById('analysis-summary');
+    summary.textContent =
+      'Inspected ' + inspection.tree.length + ' files · Selected ' +
+      inspection.selectedFiles.length + ' · Analyzed ' + analysis.analyzedFiles.length +
+      (analysis.skippedFiles.length ? ' · Skipped ' + analysis.skippedFiles.length : '');
+    summary.title = [...inspection.warnings, ...analysis.warnings].join('\n');
+    summary.style.display = 'block';
     output.style.display = 'block';
     output.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -131,6 +102,7 @@ async function generate() {
   } finally {
     btn.disabled    = false;
     btn.textContent = 'Generate';
+    document.getElementById('progress').style.display = 'none';
   }
 }
 

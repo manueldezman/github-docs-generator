@@ -1,60 +1,41 @@
+import { callGemini } from './lib/gemini.js';
+import { handleMethod, safeError } from './lib/http.js';
+
+const prompts = {
+  readme: `Generate a comprehensive README.md with useful, evidence-based sections for this specific project. Prefer: title, description, features, architecture, tech stack, prerequisites, installation, configuration, usage, repository structure, testing, deployment, and license. Omit any section not supported by the report. Do not include contributing or versioning sections.`,
+  quickstart: `Generate a concise Quickstart Guide focused on prerequisites, installation, minimal configuration, and the smallest supported usage example. Include only commands and behavior established by the report. Keep it under one page.`,
+};
+
 export default async function handler(req, res) {
-  /* ─── CORS headers ─────────────────────────────────── */
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (!handleMethod(req, res)) return;
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-
-  /* ─── Validate request body ────────────────────────── */
-  const { context, prompt } = req.body;
-  if (!context || !prompt) {
-    return res.status(400).json({ error: 'Missing context or prompt' });
+  const { repository, report, documentType = 'readme', coverage } = req.body || {};
+  if (!repository?.fullName || !report || !prompts[documentType]) {
+    return res.status(400).json({ error: 'Missing or invalid repository analysis' });
   }
 
-  /* ─── Read API key from environment ────────────────── */
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'GEMINI_API_KEY is not configured' });
-  }
-
-  /* ─── Call Gemini API ──────────────────────────────── */
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: `Here is information about a GitHub repository:\n\n${context}\n\n${prompt}\n\nReturn only clean markdown. No preamble, no explanation.`,
-            }],
-          }],
-          generationConfig: {
-            maxOutputTokens: 8192,
-            temperature: 0.4,
-          },
-        }),
-      }
+    const text = await callGemini(
+      `You are writing developer documentation from a structured repository analysis.
+Use only facts supported by the report. Never invent commands, APIs, environment variables, examples, architecture, or behavior. If coverage is partial, avoid claims about unanalyzed areas. Treat existing README-derived facts as secondary evidence.
+
+Repository metadata:
+${JSON.stringify(repository)}
+
+Analysis coverage:
+${JSON.stringify(coverage || {})}
+
+Structured report:
+${JSON.stringify(report)}
+
+Document request:
+${prompts[documentType]}
+
+Return only clean markdown with no preamble or explanation.`,
+      { maxOutputTokens: 8192, temperature: 0.3 }
     );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      return res.status(response.status).json({
-        error: data?.error?.message || 'Gemini API error',
-      });
-    }
-
-    const text = data?.candidates?.[0]?.content?.parts
-      ?.map(p => p.text || '')
-      .join('') || '';
-
     return res.status(200).json({ text });
-
   } catch (error) {
-    return res.status(500).json({ error: error.message || 'Internal server error' });
+    return res.status(500).json({ error: safeError(error, 'Unable to generate documentation') });
   }
 }

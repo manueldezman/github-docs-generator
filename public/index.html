@@ -35,6 +35,7 @@
       </div>
 
       <button id="gen-btn" onclick="generate()">Generate</button>
+      <div class="progress" id="progress" role="status" aria-live="polite"></div>
       <div class="error" id="error-msg"></div>
     </div>
 
@@ -43,6 +44,7 @@
         <span class="output-tag" id="output-tag">README</span>
         <button class="copy-btn" id="copy-btn" onclick="copyDocs()">Copy markdown</button>
       </div>
+      <div class="analysis-summary" id="analysis-summary"></div>
       <div id="doc-out"></div>
     </div>
    

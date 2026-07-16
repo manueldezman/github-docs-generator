@@ -8,9 +8,10 @@ An open source, AI-powered documentation generator for any public GitHub reposit
 
 ## Features
 
-- Generates 2 documentation types: README and Quickstart.
-- Fetches real repo metadata, file structure, and existing README from the GitHub public API
-- Powered by Google Gemini 2.5 Flash via a secure backend proxy
+- Generates comprehensive README and concise Quickstart documentation
+- Recursively inspects repository structure and selects high-value source files
+- Summarizes large files in bounded chunks before generating evidence-based docs
+- Powered by Google Gemini 2.5 Flash via secure backend proxies
 - No API key required for end users
 - Clean, responsive dark UI
 
@@ -36,7 +37,11 @@ github-docs-generator/
 │   ├── styles.css
 │   └── app.js
 ├── api/
+│   ├── lib/
+│   ├── inspect.js
+│   ├── analyze.js
 │   └── generate.js
+├── test/
 ├── .env              ← gitignored
 ├── .gitignore
 ├── vercel.json
@@ -67,7 +72,11 @@ cd github-docs-generator
 
 ```bash
 GEMINI_API_KEY=your_gemini_api_key_here
+GITHUB_TOKEN=your_github_token_here
 ```
+
+The GitHub token only needs read access to public repositories. It is used server-side
+to improve API rate limits and is never sent to the browser.
 
 3. Start the local dev server:
 

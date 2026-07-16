@@ -4,9 +4,13 @@
     { "src": "public/index.html", "use": "@vercel/static" },
     { "src": "public/styles.css", "use": "@vercel/static" },
     { "src": "public/app.js", "use": "@vercel/static" },
+    { "src": "api/inspect.js", "use": "@vercel/node" },
+    { "src": "api/analyze.js", "use": "@vercel/node" },
     { "src": "api/generate.js", "use": "@vercel/node" }
   ],
   "routes": [
+    { "src": "/api/inspect", "dest": "/api/inspect.js" },
+    { "src": "/api/analyze", "dest": "/api/analyze.js" },
     { "src": "/api/generate", "dest": "/api/generate.js" },
     { "src": "/(.*)", "dest": "/public/$1" }
   ]

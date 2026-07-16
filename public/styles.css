@@ -275,6 +275,28 @@ input[type="text"]::placeholder {
   line-height: 1.5;
 }
 
+/* ─── Analysis progress ──────────────────────────────── */
+.progress,
+.analysis-summary {
+  display: none;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.progress {
+  margin-top: 10px;
+}
+
+.analysis-summary {
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius);
+}
+
 /* ─── Output ─────────────────────────────────────────── */
 #output {
   display: none;
