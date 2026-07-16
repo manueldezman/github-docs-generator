@@ -1,5 +1,5 @@
 import { callGemini } from './lib/gemini.js';
-import { handleMethod, safeError } from './lib/http.js';
+import { errorStatus, handleMethod, safeError } from './lib/http.js';
 
 const prompts = {
   readme: `Generate a comprehensive README.md with useful, evidence-based sections for this specific project. Prefer: title, description, features, architecture, tech stack, prerequisites, installation, configuration, usage, repository structure, testing, deployment, and license. Omit any section not supported by the report. Do not include contributing or versioning sections.`,
@@ -36,6 +36,8 @@ Return only clean markdown with no preamble or explanation.`,
     );
     return res.status(200).json({ text });
   } catch (error) {
-    return res.status(500).json({ error: safeError(error, 'Unable to generate documentation') });
+    return res.status(errorStatus(error, 500)).json({
+      error: safeError(error, 'Unable to generate documentation'),
+    });
   }
 }

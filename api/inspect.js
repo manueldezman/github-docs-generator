@@ -1,4 +1,4 @@
-import { handleMethod, safeError } from './lib/http.js';
+import { errorStatus, handleMethod, safeError } from './lib/http.js';
 import {
   LIMITS,
   githubRequest,
@@ -63,7 +63,7 @@ export default async function handler(req, res) {
       warnings,
     });
   } catch (error) {
-    const status = /not found/i.test(error.message) ? 404 : 400;
+    const status = errorStatus(error, /not found/i.test(error.message) ? 404 : 400);
     return res.status(status).json({ error: safeError(error, 'Unable to inspect this repository') });
   }
 }

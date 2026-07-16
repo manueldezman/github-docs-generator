@@ -1,5 +1,5 @@
-import { callGemini, parseJsonResponse } from './lib/gemini.js';
-import { handleMethod, safeError } from './lib/http.js';
+import { callGeminiJson } from './lib/gemini.js';
+import { errorStatus, handleMethod, safeError } from './lib/http.js';
 import {
   LIMITS,
   chunkText,
@@ -41,7 +41,7 @@ async function mapWithConcurrency(items, limit, worker) {
 }
 
 async function summarizeChunk(path, chunk, part, total) {
-  return callGemini(
+  return callGeminiJson(
     `Analyze this repository file using only the supplied content.
 File: ${path}
 Chunk: ${part} of ${total}
@@ -50,7 +50,7 @@ Extract concrete facts useful for developer documentation: responsibilities, exp
 
 FILE CONTENT:
 ${chunk}`,
-    { maxOutputTokens: 1800, responseMimeType: 'application/json' }
+    { maxOutputTokens: 2400 }
   );
 }
 
@@ -65,6 +65,7 @@ export default async function handler(req, res) {
     const analyzedFiles = [];
     const skippedFiles = [];
     const warnings = [];
+    let firstFileError;
     let totalBytes = 0;
 
     for (const file of files) {
@@ -98,12 +99,15 @@ export default async function handler(req, res) {
         }
         totalBytes += byteSize;
         analyzedFiles.push({ path: normalized.path, bytes: byteSize, content });
-      } catch {
+      } catch (error) {
+        firstFileError ||= error;
         skippedFiles.push({ path: normalized.path, reason: 'file unavailable during analysis' });
       }
     }
 
-    if (!analyzedFiles.length) throw new Error('No selected files could be analyzed');
+    if (!analyzedFiles.length) {
+      throw firstFileError || new Error('No selected files could be analyzed');
+    }
 
     const chunkJobs = analyzedFiles.flatMap(file => {
       const chunks = chunkText(file.content);
@@ -115,18 +119,18 @@ export default async function handler(req, res) {
       }));
     });
 
-    const rawSummaries = await mapWithConcurrency(
+    const summaries = await mapWithConcurrency(
       chunkJobs,
       4,
       job => summarizeChunk(job.path, job.chunk, job.part, job.total)
     );
-    const summaries = rawSummaries.map((text, index) => ({
+    const attributedSummaries = summaries.map((analysis, index) => ({
       file: chunkJobs[index].path,
       part: chunkJobs[index].part,
-      analysis: parseJsonResponse(text),
+      analysis,
     }));
 
-    const reportText = await callGemini(
+    const report = await callGeminiJson(
       `Create a factual repository analysis from the metadata, file tree, and file analyses below.
 Do not infer unsupported behavior. Deduplicate repeated facts. Prefer source code, manifests, tests, examples, and configuration over claims found only in README files. Preserve exact commands, identifiers, file paths, APIs, configuration keys, and environment variable names. Put missing or conflicting information in uncertainties.
 Return JSON with exactly these top-level keys: ${ANALYSIS_FIELDS.join(', ')}. Values may be strings, arrays, or objects as appropriate.
@@ -138,8 +142,8 @@ FILE TREE:
 ${JSON.stringify(req.body?.tree || []).slice(0, 120000)}
 
 FILE ANALYSES:
-${JSON.stringify(summaries).slice(0, 500000)}`,
-      { maxOutputTokens: 6000, responseMimeType: 'application/json' }
+${JSON.stringify(attributedSummaries).slice(0, 500000)}`,
+      { maxOutputTokens: 7500 }
     );
 
     if (skippedFiles.length) {
@@ -147,12 +151,14 @@ ${JSON.stringify(summaries).slice(0, 500000)}`,
     }
 
     return res.status(200).json({
-      report: parseJsonResponse(reportText),
+      report,
       analyzedFiles: analyzedFiles.map(({ path, bytes }) => ({ path, bytes })),
       skippedFiles,
       warnings,
     });
   } catch (error) {
-    return res.status(400).json({ error: safeError(error, 'Unable to analyze this repository') });
+    return res.status(errorStatus(error, 400)).json({
+      error: safeError(error, 'Unable to analyze this repository'),
+    });
   }
 }

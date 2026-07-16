@@ -1,3 +1,5 @@
+import { upstreamError } from './http.js';
+
 export const LIMITS = {
   maxSelectedFiles: 20,
   maxFileBytes: 250 * 1024,
@@ -184,30 +186,69 @@ export function githubHeaders(token, accept = 'application/vnd.github+json') {
 }
 
 export async function githubRequest(url, token, options = {}) {
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...githubHeaders(token, options.accept),
-      ...(options.headers || {}),
-    },
-  });
+  const { accept, headers, ...fetchOptions } = options;
+  const retryableStatuses = new Set([429, 500, 502, 503, 504]);
 
-  if (!response.ok) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    let response;
+    try {
+      response = await fetch(url, {
+        ...fetchOptions,
+        headers: {
+          ...githubHeaders(token, accept),
+          ...(headers || {}),
+        },
+      });
+    } catch {
+      if (attempt < 2) {
+        await wait(300 * (2 ** attempt));
+        continue;
+      }
+      throw upstreamError('GitHub is temporarily unreachable. Please try again.', 503);
+    }
+
+    if (response.ok) return response;
+
     let message = `GitHub request failed (${response.status})`;
     try {
-      const data = await response.json();
+      const data = await response.clone().json();
       if (data.message) message = data.message;
     } catch {
       // Keep the safe generic message.
     }
-    if (response.status === 403 && response.headers.get('x-ratelimit-remaining') === '0') {
-      message = 'GitHub API rate limit reached. Try again after the limit resets.';
+
+    const rateLimited = response.status === 429 ||
+      (response.status === 403 && response.headers.get('x-ratelimit-remaining') === '0');
+    if (rateLimited) {
+      throw upstreamError('GitHub API rate limit reached. Try again after the limit resets.', 429);
     }
-    throw new Error(message);
+
+    if (retryableStatuses.has(response.status) && attempt < 2) {
+      await wait(retryDelay(response, attempt));
+      continue;
+    }
+
+    if (retryableStatuses.has(response.status)) {
+      throw upstreamError('GitHub is temporarily unavailable after several attempts. Please try again.', 503);
+    }
+    throw upstreamError(message, response.status);
   }
-  return response;
+
+  throw upstreamError('GitHub is temporarily unavailable. Please try again.', 503);
 }
 
 export function encodeGitHubPath(path) {
   return path.split('/').map(encodeURIComponent).join('/');
+}
+
+function retryDelay(response, attempt) {
+  const retryAfter = Number(response.headers.get('retry-after'));
+  if (Number.isFinite(retryAfter) && retryAfter > 0) {
+    return Math.min(retryAfter * 1000, 3000);
+  }
+  return 300 * (2 ** attempt);
+}
+
+function wait(milliseconds) {
+  return new Promise(resolve => setTimeout(resolve, milliseconds));
 }

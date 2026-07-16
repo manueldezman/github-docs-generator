@@ -23,3 +23,14 @@ export function safeError(error, fallback) {
   if (/api[_ -]?key|token|authorization|bearer/i.test(message)) return fallback;
   return message || fallback;
 }
+
+export function errorStatus(error, fallback = 500) {
+  const status = Number(error?.statusCode);
+  return status >= 400 && status <= 599 ? status : fallback;
+}
+
+export function upstreamError(message, statusCode = 502) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+}
