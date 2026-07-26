@@ -1,4 +1,4 @@
-import { callGemini } from './lib/gemini.js';
+import { callGemini, GEMINI_STAGE_CONFIG } from './lib/gemini.js';
 import { errorStatus, handleMethod, safeError } from './lib/http.js';
 
 const prompts = {
@@ -32,7 +32,7 @@ Document request:
 ${prompts[documentType]}
 
 Return only clean markdown with no preamble or explanation.`,
-      { maxOutputTokens: 8192, temperature: 0.3 }
+      GEMINI_STAGE_CONFIG.documentation
     );
     return res.status(200).json({ text });
   } catch (error) {

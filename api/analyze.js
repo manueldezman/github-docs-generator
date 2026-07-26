@@ -1,4 +1,4 @@
-import { callGeminiJson } from './lib/gemini.js';
+import { callGeminiJson, GEMINI_STAGE_CONFIG } from './lib/gemini.js';
 import { errorStatus, handleMethod, safeError } from './lib/http.js';
 import {
   LIMITS,
@@ -46,11 +46,14 @@ async function summarizeChunk(path, chunk, part, total) {
 File: ${path}
 Chunk: ${part} of ${total}
 
-Extract concrete facts useful for developer documentation: responsibilities, exported/public interfaces, commands, configuration, environment variables, dependencies, data flow, usage, tests, and deployment behavior. Include identifiers and exact commands when visible. Say "not established" for anything unsupported. Return concise JSON with keys: summary, facts, commands, configuration, APIs, tests, uncertainties.
+Extract only concrete facts useful for developer documentation: responsibilities, exported/public interfaces, commands, configuration, environment variables, dependencies, data flow, usage, tests, and deployment behavior. Include identifiers and exact commands when visible. Keep the summary under 80 words, use short strings, include at most 12 high-value facts, and omit unsupported or empty items. Return concise JSON with keys: summary, facts, commands, configuration, APIs, tests, uncertainties.
 
 FILE CONTENT:
 ${chunk}`,
-    { maxOutputTokens: 2400 }
+    {
+      ...GEMINI_STAGE_CONFIG.fileAnalysis,
+      stage: `File analysis (${path}, chunk ${part}/${total})`,
+    }
   );
 }
 
@@ -132,7 +135,7 @@ export default async function handler(req, res) {
 
     const report = await callGeminiJson(
       `Create a factual repository analysis from the metadata, file tree, and file analyses below.
-Do not infer unsupported behavior. Deduplicate repeated facts. Prefer source code, manifests, tests, examples, and configuration over claims found only in README files. Preserve exact commands, identifiers, file paths, APIs, configuration keys, and environment variable names. Put missing or conflicting information in uncertainties.
+Do not infer unsupported behavior. Deduplicate repeated facts and keep descriptions concise. Prefer source code, manifests, tests, examples, and configuration over claims found only in README files. Preserve exact commands, identifiers, file paths, APIs, configuration keys, and environment variable names. Prioritize high-value developer information; omit repetitive or empty details. Put missing or conflicting information in uncertainties.
 Return JSON with exactly these top-level keys: ${ANALYSIS_FIELDS.join(', ')}. Values may be strings, arrays, or objects as appropriate.
 
 REPOSITORY:
@@ -143,7 +146,7 @@ ${JSON.stringify(req.body?.tree || []).slice(0, 120000)}
 
 FILE ANALYSES:
 ${JSON.stringify(attributedSummaries).slice(0, 500000)}`,
-      { maxOutputTokens: 7500 }
+      GEMINI_STAGE_CONFIG.repositoryReport
     );
 
     if (skippedFiles.length) {

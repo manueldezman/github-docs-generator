@@ -1,6 +1,25 @@
 import { upstreamError } from './http.js';
 
 const RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
+const MODEL = 'gemini-2.5-flash';
+
+export const GEMINI_STAGE_CONFIG = Object.freeze({
+  fileAnalysis: Object.freeze({
+    maxOutputTokens: 4096,
+    thinkingBudget: 0,
+  }),
+  repositoryReport: Object.freeze({
+    maxOutputTokens: 16384,
+    thinkingBudget: 0,
+    stage: 'Repository report',
+  }),
+  documentation: Object.freeze({
+    maxOutputTokens: 16384,
+    thinkingBudget: 2048,
+    stage: 'Documentation generation',
+    temperature: 0.3,
+  }),
+});
 
 export async function callGemini(prompt, options = {}) {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -10,7 +29,7 @@ export async function callGemini(prompt, options = {}) {
     let response;
     try {
       response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -19,6 +38,9 @@ export async function callGemini(prompt, options = {}) {
             generationConfig: {
               maxOutputTokens: options.maxOutputTokens || 4096,
               temperature: options.temperature ?? 0.2,
+              thinkingConfig: {
+                thinkingBudget: options.thinkingBudget ?? 0,
+              },
               ...(options.responseMimeType ? { responseMimeType: options.responseMimeType } : {}),
             },
           }),
@@ -65,7 +87,8 @@ export async function callGemini(prompt, options = {}) {
     }
 
     if (candidate.finishReason === 'MAX_TOKENS') {
-      throw upstreamError('Gemini analysis exceeded its output limit. Try a smaller repository.', 422);
+      const stage = options.stage || 'Gemini response';
+      throw upstreamError(`${stage} exceeded its output limit.`, 422);
     }
     return text;
   }
