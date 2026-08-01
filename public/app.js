@@ -49,9 +49,13 @@ function updateTerminal(message) {
   document.getElementById('progress-text').textContent = message;
 }
 
-function setOutputStatus(message) {
+function setOutputStatus(message, isError = false) {
+  const placeholder = document.getElementById('output-placeholder');
   document.getElementById('output-status').textContent = message;
-  document.getElementById('output-placeholder').style.display = 'flex';
+  placeholder.classList.toggle('is-error', isError);
+  placeholder.setAttribute('role', isError ? 'alert' : 'status');
+  placeholder.setAttribute('aria-live', isError ? 'assertive' : 'polite');
+  placeholder.style.display = 'flex';
   document.getElementById('doc-out').style.display = 'none';
 }
 
@@ -155,12 +159,10 @@ function renderSelectedFiles(files) {
 
 async function generate() {
   const url = repoInput.value.trim();
-  const error = document.getElementById('error-msg');
   const buttonLabel = generateButton.querySelector('.button-label');
-  error.textContent = '';
 
   if (!url) {
-    error.textContent = 'Enter a public GitHub repository URL.';
+    setOutputStatus('Error: Enter a public GitHub repository URL.', true);
     repoInput.focus();
     return;
   }
@@ -227,9 +229,8 @@ async function generate() {
       active.querySelector('b').textContent = '!';
     }
     const message = caught.message || 'Something went wrong. Please try again.';
-    error.textContent = message;
-    updateTerminal(`Error: ${message}`);
-    setOutputStatus('Generation stopped. Check the error and try again.');
+    updateTerminal('Generation stopped');
+    setOutputStatus(`Error: ${message}`, true);
   } finally {
     generateButton.disabled = false;
     buttonLabel.textContent = 'Generate docs';
