@@ -11,7 +11,7 @@ An open source, AI-powered documentation generator for any public GitHub reposit
 - Generates comprehensive README and concise Quickstart documentation
 - Recursively inspects repository structure and selects high-value source files
 - Summarizes large files in bounded chunks before generating evidence-based docs
-- Powered by Google Gemini 2.5 Flash via secure backend proxies
+- Powered by GLM 5.2 through NVIDIA's secure API
 - No API key required for end users
 - Clean, responsive dark UI
 
@@ -23,7 +23,7 @@ An open source, AI-powered documentation generator for any public GitHub reposit
 |---|---|
 | Frontend | HTML, CSS, JavaScript (vanilla) |
 | Backend | Vercel Serverless Function (Node.js) |
-| AI | Google Gemini 2.5 Flash |
+| AI | GLM 5.2 via NVIDIA API |
 | Hosting | Vercel (free tier) |
 
 ---
@@ -57,7 +57,7 @@ github-docs-generator/
 
 - [Node.js](https://nodejs.org/) v18 or higher
 - [Vercel CLI](https://vercel.com/docs/cli): `npm install -g vercel`
-- A free Gemini API key from [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+- An NVIDIA API key with access to `z-ai/glm-5.2`
 
 ### Setup
 
@@ -71,7 +71,7 @@ cd github-docs-generator
 2. Create a `.env` file in the root:
 
 ```bash
-GEMINI_API_KEY=your_gemini_api_key_here
+NVIDIA_API_KEY=your_nvidia_api_key_here
 GITHUB_TOKEN=your_github_token_here
 ```
 

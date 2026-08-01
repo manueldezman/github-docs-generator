@@ -1,4 +1,4 @@
-import { callGeminiJson, GEMINI_STAGE_CONFIG } from './lib/gemini.js';
+import { AI_STAGE_CONFIG, generateJson } from './lib/ai.js';
 import { errorStatus, handleMethod, safeError } from './lib/http.js';
 import {
   createGitHubFileFetcher,
@@ -15,8 +15,8 @@ export default async function handler(req, res) {
   try {
     const analyzeRepository = createRepositoryAnalyzer({
       fetchFile: createGitHubFileFetcher({ request: githubRequest, token }),
-      analyzeJson: (prompt, options) => callGeminiJson(prompt, {
-        ...GEMINI_STAGE_CONFIG[options.kind],
+      analyzeJson: (prompt, options) => generateJson(prompt, {
+        ...AI_STAGE_CONFIG[options.kind],
         ...(options.stage ? { stage: options.stage } : {}),
       }),
     });

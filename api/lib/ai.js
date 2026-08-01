@@ -1,57 +1,53 @@
 import { upstreamError } from './http.js';
 
 const RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
-const MODEL = 'gemini-2.5-flash';
+const API_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
+const MODEL = 'z-ai/glm-5.2';
 
-export const GEMINI_STAGE_CONFIG = Object.freeze({
+export const AI_STAGE_CONFIG = Object.freeze({
   fileAnalysis: Object.freeze({
-    maxOutputTokens: 4096,
-    thinkingBudget: 0,
+    maxTokens: 4096,
   }),
   repositoryReport: Object.freeze({
-    maxOutputTokens: 16384,
-    thinkingBudget: 0,
+    maxTokens: 16384,
     stage: 'Repository report',
   }),
   documentation: Object.freeze({
-    maxOutputTokens: 16384,
-    thinkingBudget: 2048,
+    maxTokens: 16384,
     stage: 'Documentation generation',
     temperature: 0.3,
   }),
 });
 
-export async function callGemini(prompt, options = {}) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw upstreamError('Gemini is not configured', 500);
+export async function generateText(prompt, options = {}) {
+  const apiKey = process.env.NVIDIA_API_KEY;
+  if (!apiKey) throw upstreamError('NVIDIA AI access is not configured', 500);
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     let response;
     try {
-      response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              maxOutputTokens: options.maxOutputTokens || 4096,
-              temperature: options.temperature ?? 0.2,
-              thinkingConfig: {
-                thinkingBudget: options.thinkingBudget ?? 0,
-              },
-              ...(options.responseMimeType ? { responseMimeType: options.responseMimeType } : {}),
-            },
-          }),
-        }
-      );
+      response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: options.temperature ?? 0.2,
+          top_p: options.topP ?? 1,
+          max_tokens: options.maxTokens || 4096,
+          seed: options.seed ?? 42,
+          stream: false,
+        }),
+      });
     } catch {
       if (attempt < 2) {
         await wait(400 * (2 ** attempt));
         continue;
       }
-      throw upstreamError('Gemini is temporarily unreachable. Please try again.', 503);
+      throw upstreamError('NVIDIA AI is temporarily unreachable. Please try again.', 503);
     }
 
     let data;
@@ -67,44 +63,38 @@ export async function callGemini(prompt, options = {}) {
         continue;
       }
       const message = RETRYABLE_STATUSES.has(response.status)
-        ? 'Gemini is temporarily unavailable after several attempts. Please try again.'
-        : data?.error?.message || `Gemini request failed (${response.status})`;
+        ? 'NVIDIA AI is temporarily unavailable after several attempts. Please try again.'
+        : data?.error?.message || `NVIDIA AI request failed (${response.status})`;
       throw upstreamError(message, RETRYABLE_STATUSES.has(response.status) ? 503 : response.status);
     }
 
-    const candidate = data?.candidates?.[0];
-    const text = candidate?.content?.parts
-      ?.map(part => part.text || '')
-      .join('')
-      .trim();
-
+    const choice = data?.choices?.[0];
+    const text = choice?.message?.content?.trim();
+    if (choice?.finish_reason === 'length') {
+      const stage = options.stage || 'AI response';
+      throw upstreamError(`${stage} exceeded its output limit.`, 422);
+    }
     if (!text) {
       if (attempt < 2) {
         await wait(250 * (attempt + 1));
         continue;
       }
-      throw upstreamError('Gemini returned an empty response after several attempts.', 502);
-    }
-
-    if (candidate.finishReason === 'MAX_TOKENS') {
-      const stage = options.stage || 'Gemini response';
-      throw upstreamError(`${stage} exceeded its output limit.`, 422);
+      throw upstreamError('GLM returned an empty response after several attempts.', 502);
     }
     return text;
   }
 
-  throw upstreamError('Gemini did not return a usable response.', 502);
+  throw upstreamError('GLM did not return a usable response.', 502);
 }
 
-export async function callGeminiJson(prompt, options = {}) {
+export async function generateJson(prompt, options = {}) {
   let lastError;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const strictPrompt = attempt === 0
       ? prompt
       : `${prompt}\n\nIMPORTANT: Your previous response was not valid JSON. Return one complete JSON value only. Do not use markdown fences or commentary.`;
-    const text = await callGemini(strictPrompt, {
+    const text = await generateText(strictPrompt, {
       ...options,
-      responseMimeType: 'application/json',
       temperature: attempt === 0 ? (options.temperature ?? 0.1) : 0,
     });
     try {
@@ -113,12 +103,12 @@ export async function callGeminiJson(prompt, options = {}) {
       lastError = error;
     }
   }
-  throw lastError || upstreamError('Gemini returned an invalid analysis result.', 502);
+  throw lastError || upstreamError('GLM returned an invalid analysis result.', 502);
 }
 
 export function parseJsonResponse(text) {
   if (typeof text !== 'string' || !text.trim()) {
-    throw upstreamError('Gemini returned an invalid analysis result.', 502);
+    throw upstreamError('GLM returned an invalid analysis result.', 502);
   }
 
   const withoutFence = text
@@ -150,7 +140,7 @@ export function parseJsonResponse(text) {
       }
     }
   }
-  throw upstreamError('Gemini returned an invalid analysis result.', 502);
+  throw upstreamError('GLM returned an invalid analysis result.', 502);
 }
 
 function retryDelay(response, attempt) {

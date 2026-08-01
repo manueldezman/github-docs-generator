@@ -1,4 +1,4 @@
-import { callGemini, GEMINI_STAGE_CONFIG } from './lib/gemini.js';
+import { AI_STAGE_CONFIG, generateText } from './lib/ai.js';
 import { errorStatus, handleMethod, safeError } from './lib/http.js';
 
 const prompts = {
@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const text = await callGemini(
+    const text = await generateText(
       `You are writing developer documentation from a structured repository analysis.
 Use only facts supported by the report. Never invent commands, APIs, environment variables, examples, architecture, or behavior. If coverage is partial, avoid claims about unanalyzed areas. Treat existing README-derived facts as secondary evidence.
 
@@ -32,7 +32,7 @@ Document request:
 ${prompts[documentType]}
 
 Return only clean markdown with no preamble or explanation.`,
-      GEMINI_STAGE_CONFIG.documentation
+      AI_STAGE_CONFIG.documentation
     );
     return res.status(200).json({ text });
   } catch (error) {

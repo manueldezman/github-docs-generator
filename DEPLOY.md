@@ -32,14 +32,14 @@ Replace `YOUR_USERNAME` with your actual GitHub username.
 
 ---
 
-## Step 3 — Add your Gemini API key
+## Step 3 — Add your NVIDIA API key
 
 Before deploying:
 
 1. Scroll down to **"Environment Variables"**
 2. Add the following variable:
-   - **Name:** `GEMINI_API_KEY`
-   - **Value:** your Gemini API key from [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+   - **Name:** `NVIDIA_API_KEY`
+   - **Value:** your NVIDIA API key with access to `z-ai/glm-5.2`
 3. Click **"Add"**
 4. Now click **"Deploy"**
 
@@ -81,5 +81,5 @@ vercel dev
 Make sure your `.env` file in the project root contains:
 
 ```
-GEMINI_API_KEY=your_key_here
+NVIDIA_API_KEY=your_key_here
 ```
