@@ -50,6 +50,9 @@ test('analysis policy works with injected repository and AI adapters', async () 
   assert.equal(calls.length, 2);
   assert.equal(calls[0].options.kind, 'fileAnalysis');
   assert.equal(calls[1].options.kind, 'repositoryReport');
+  assert.match(calls[0].prompt, /Do not enumerate individual HTTP endpoints/);
+  assert.match(calls[1].prompt, /apiDocumentation/);
+  assert.match(calls[1].prompt, /repositoryStructure/);
 });
 
 test('skips unsafe files without invoking infrastructure dependencies', async () => {

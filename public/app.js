@@ -1,4 +1,7 @@
 let selectedType = 'readme';
+let generatedDocument = '';
+let renderedDocument = '';
+let previewRendererPromise;
 
 const typeLabels = {
   readme: 'README.md',
@@ -57,6 +60,7 @@ function setOutputStatus(message, isError = false) {
   placeholder.setAttribute('aria-live', isError ? 'assertive' : 'polite');
   placeholder.style.display = 'flex';
   document.getElementById('doc-out').style.display = 'none';
+  document.getElementById('doc-preview').style.display = 'none';
 }
 
 function setStage(id, state, value) {
@@ -83,7 +87,11 @@ function resetWorkspace() {
   document.getElementById('file-tree').appendChild(empty);
 
   document.getElementById('doc-out').textContent = '';
-  document.getElementById('copy-btn').disabled = true;
+  document.getElementById('doc-preview').replaceChildren();
+  generatedDocument = '';
+  renderedDocument = '';
+  setDocumentControlsDisabled(true);
+  setDocumentView('markdown');
   document.getElementById('analysis-summary').style.display = 'none';
   setOutputStatus('Waiting for repository analysis...');
 }
@@ -212,9 +220,11 @@ async function generate() {
     updateTerminal(`${typeLabels[selectedType]} generated from ${analysis.analyzedFiles.length} files`);
     document.getElementById('output-placeholder').style.display = 'none';
     const output = document.getElementById('doc-out');
-    output.textContent = generated.text;
-    output.style.display = 'block';
-    document.getElementById('copy-btn').disabled = false;
+    generatedDocument = generated.text;
+    renderedDocument = '';
+    output.textContent = generatedDocument;
+    setDocumentControlsDisabled(false);
+    setDocumentView('markdown');
 
     const summary = document.getElementById('analysis-summary');
     summary.textContent = `${inspection.tree.length} inspected · ${inspection.selectedFiles.length} selected · ${analysis.analyzedFiles.length} analyzed` +
@@ -238,7 +248,7 @@ async function generate() {
 }
 
 async function copyDocs() {
-  const text = document.getElementById('doc-out').textContent;
+  const text = generatedDocument;
   if (!text) return;
   const button = document.getElementById('copy-btn');
   try {
@@ -253,6 +263,59 @@ async function copyDocs() {
   } catch {
     button.textContent = 'Copy failed';
   }
+}
+
+function setDocumentControlsDisabled(disabled) {
+  document.getElementById('markdown-btn').disabled = disabled;
+  document.getElementById('preview-btn').disabled = disabled;
+  document.getElementById('copy-btn').disabled = disabled;
+}
+
+function setDocumentView(view) {
+  const previewing = view === 'preview';
+  const markdownButton = document.getElementById('markdown-btn');
+  const previewButton = document.getElementById('preview-btn');
+  document.getElementById('doc-out').style.display = previewing ? 'none' : (generatedDocument ? 'block' : 'none');
+  document.getElementById('doc-preview').style.display = previewing ? 'block' : 'none';
+  markdownButton.classList.toggle('active', !previewing);
+  previewButton.classList.toggle('active', previewing);
+  markdownButton.setAttribute('aria-pressed', String(!previewing));
+  previewButton.setAttribute('aria-pressed', String(previewing));
+}
+
+function showMarkdownDocs() {
+  if (generatedDocument) setDocumentView('markdown');
+}
+
+async function previewDocs() {
+  if (!generatedDocument) return;
+  const button = document.getElementById('preview-btn');
+  const preview = document.getElementById('doc-preview');
+  button.disabled = true;
+  button.textContent = 'Rendering';
+
+  try {
+    if (renderedDocument !== generatedDocument) {
+      const { renderMarkdownPreview } = await loadPreviewRenderer();
+      await renderMarkdownPreview(generatedDocument, preview);
+      renderedDocument = generatedDocument;
+    }
+  } catch {
+    preview.replaceChildren();
+    const message = document.createElement('p');
+    message.className = 'preview-error';
+    message.textContent = 'Preview is temporarily unavailable. The Markdown document is still ready to copy.';
+    preview.appendChild(message);
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Preview';
+    setDocumentView('preview');
+  }
+}
+
+function loadPreviewRenderer() {
+  previewRendererPromise ||= import('./preview.js');
+  return previewRendererPromise;
 }
 
 function openStarModal() {

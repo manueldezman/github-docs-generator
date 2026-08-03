@@ -75,7 +75,11 @@
         <section class="output-panel">
           <div class="output-header">
             <div>Output · <span id="output-tag">README.md</span></div>
-            <button class="copy-btn" id="copy-btn" type="button" onclick="copyDocs()" disabled>Copy</button>
+            <div class="output-actions" role="group" aria-label="Document view and actions">
+              <button class="view-btn active" id="markdown-btn" type="button" aria-pressed="true" onclick="showMarkdownDocs()" disabled>Markdown</button>
+              <button class="view-btn" id="preview-btn" type="button" aria-pressed="false" onclick="previewDocs()" disabled>Preview</button>
+              <button class="copy-btn" id="copy-btn" type="button" onclick="copyDocs()" disabled>Copy</button>
+            </div>
           </div>
           <div class="output-content">
             <div class="output-placeholder" id="output-placeholder">
@@ -84,6 +88,7 @@
               <i></i>
             </div>
             <pre id="doc-out" tabindex="0"></pre>
+            <article class="doc-preview" id="doc-preview" tabindex="0" aria-label="Rendered documentation preview"></article>
           </div>
           <div class="analysis-summary" id="analysis-summary"></div>
         </section>

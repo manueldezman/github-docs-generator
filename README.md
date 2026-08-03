@@ -11,6 +11,8 @@ An open source, AI-powered documentation generator for any public GitHub reposit
 - Generates comprehensive README and concise Quickstart documentation
 - Recursively inspects repository structure and selects high-value source files
 - Summarizes large files in bounded chunks before generating evidence-based docs
+- Generates GitHub-compatible architecture and data-flow diagrams when supported
+- Includes a rendered Markdown and Mermaid preview before copying
 - Powered by GLM 5.2 through NVIDIA's secure API
 - No API key required for end users
 - Clean, responsive dark UI

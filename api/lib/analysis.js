@@ -6,9 +6,10 @@ import {
 } from './repository.js';
 
 const ANALYSIS_FIELDS = [
-  'purpose', 'architecture', 'entryPoints', 'features', 'commands',
-  'configuration', 'environmentVariables', 'publicApis', 'dataFlow',
-  'dependencies', 'testing', 'usageExamples', 'deployment', 'uncertainties',
+  'purpose', 'components', 'entryPoints', 'features', 'prerequisites',
+  'commands', 'configuration', 'environmentVariables', 'apiDocumentation',
+  'dataFlow', 'dependencies', 'testing', 'usageExamples', 'deployment',
+  'repositoryStructure', 'uncertainties',
 ];
 
 export function validateAnalysisRequest(body) {
@@ -129,7 +130,7 @@ function createFilePrompt({ path, chunk, part, total }) {
 File: ${path}
 Chunk: ${part} of ${total}
 
-Extract only concrete facts useful for developer documentation: responsibilities, exported/public interfaces, commands, configuration, environment variables, dependencies, data flow, usage, tests, and deployment behavior. Include identifiers and exact commands when visible. Keep the summary under 80 words, use short strings, include at most 12 high-value facts, and omit unsupported or empty items. Return concise JSON with keys: summary, facts, commands, configuration, APIs, tests, uncertainties.
+Extract only concrete facts useful for developer documentation: responsibilities, system components, essential setup or usage commands, configuration, environment variables, dependencies, data-flow relationships, usage, tests, deployment behavior, and explicit Swagger/OpenAPI documentation locations. Include identifiers and exact commands when visible. Associate commands with their working directory or manifest when known. Do not enumerate individual HTTP endpoints. Keep the summary under 80 words, use short strings, include at most 12 high-value facts, and omit unsupported or empty items. Return concise JSON with keys: summary, facts, components, commands, configuration, apiDocumentation, dataFlow, tests, uncertainties.
 
 FILE CONTENT:
 ${chunk}`;
@@ -137,7 +138,7 @@ ${chunk}`;
 
 function createReportPrompt(repository, tree, attributedSummaries) {
   return `Create a factual repository analysis from the metadata, file tree, and file analyses below.
-Do not infer unsupported behavior. Deduplicate repeated facts and keep descriptions concise. Prefer source code, manifests, tests, examples, and configuration over claims found only in README files. Preserve exact commands, identifiers, file paths, APIs, configuration keys, and environment variable names. Prioritize high-value developer information; omit repetitive or empty details. Put missing or conflicting information in uncertainties.
+Do not infer unsupported behavior. Deduplicate repeated facts and keep descriptions concise. Prefer source code, manifests, tests, examples, and configuration over claims found only in README files. Describe architecture as components and supported relationships, not prose. Preserve exact commands, identifiers, file paths, configuration keys, and environment variable names. For commands, preserve their working directory or owning manifest. For apiDocumentation, include only explicit Swagger/OpenAPI documentation URLs or paths; never list individual endpoints. Build repositoryStructure from meaningful directories visible in the file tree, with short evidence-based purposes. Prioritize high-value developer information; omit repetitive or empty details. Put missing or conflicting information in uncertainties.
 Return JSON with exactly these top-level keys: ${ANALYSIS_FIELDS.join(', ')}. Values may be strings, arrays, or objects as appropriate.
 
 REPOSITORY:
